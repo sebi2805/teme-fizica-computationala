@@ -1,5 +1,5 @@
 import "./App.css";
-import SpaceScene from "./components/SpaceScene";
+import SpaceScene from "./components/EarthFromData";
 function App() {
   return <SpaceScene />;
 }

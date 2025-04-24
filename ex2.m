@@ -1,108 +1,33 @@
-function testIteratii_H
-    % i assign these to my transfer function
-    H = tf([125 45 5], [150 125 32 3]);
+% ex2.m
+% ===============
+G   = 6.674e-11;       % m^3/(kg·s^2)
+Ms  = 1.989e30;        % kg
+r0  = 1.496e11;        % m
+v0  = sqrt(G*Ms/r0);   % m/s
+y0  = [r0; 0; 0; v0];   % [x; y; vx; vy]
 
-    fig = figure('Name', 'H(s) = 5s(25s^2 + 9s + 1) / (150s^3 + 125s^2 + 32s + 3)', ...
-                 'Position', [100, 100, 600, 500]);
+tspan = [0, 3.154e7];  % o perioadă ~1 an
 
-    myImg = imread('C:\Users\User\Desktop\university\FC\2.png');
-    axesImg = axes('Parent', fig, 'Units', 'pixels', 'Position', [150, 350, 300, 120]);
-    imshow(myImg, 'Parent', axesImg);
+% apel corect:
+[t, sol] = ode45(@twoBody, tspan, y0);
 
-    uicontrol('Style', 'pushbutton', ...
-              'Position', [220, 250, 150, 40], ...
-              'String', 'Rulează 10 valori', ...
-              'Callback', @ruleazaIteratii);
+x = sol(:,1);  y = sol(:,2);
+plot(x, y), axis equal
+xlabel('x [m]'), ylabel('y [m]')
+title('Orbita Pământ–Soare')
 
-    bodeFig = figure('Name', 'Bode Plot - H(s)');
-    bode(H); grid on; title('Bode Plot pentru H(s)');
+% ===============
+function dydt = twoBody(~, y)
+    % --- y(1)=x, y(2)=y, y(3)=vx, y(4)=vy ---
+    x   = y(1);
+    y_p = y(2);
+    vx  = y(3);
+    vy  = y(4);
 
-    respFig = figure('Name', 'Răspunsuri H(s)', ...
-                     'Position', [200, 100, 700, 500]);
-    clf(respFig);
+    r   = sqrt(x^2 + y_p^2);
+    % acceleraţii gravitaţionale
+    ax = -6.674e-11 * 1.989e30 * x / r^3;
+    ay = -6.674e-11 * 1.989e30 * y_p / r^3;
 
-    combinedFig = figure('Name', 'Combined signals', ...
-                         'Position', [950, 100, 700, 500]);
-
-    function ruleazaIteratii(~, ~)
-        minVal = 0;
-        maxVal = 10;
-        nPassi = 10;   % câte valori
-        durata = 5;    % 5 secunde total (pentru toate iterațiile)
-
-        for i = 1:nPassi
-            VinCurent = minVal + (maxVal - minVal)*(i-1)/(nPassi-1);
-
-            updateResponses(H, VinCurent, respFig);
-            updateAllSignals(H, VinCurent, combinedFig);
-
-            pause(durata / nPassi);
-            drawnow;
-        end
-    end
+    dydt = [vx; vy; ax; ay];
 end
-
-function updateResponses(H, Vin, respFig)
-    t = linspace(0, 50, 1000);
-
-    [yStep, tStep] = step(Vin * H, t);
-    [yImp, tImp]   = impulse(Vin * H, t);
-
-    uRamp = Vin * t;
-    yRamp = lsim(H, uRamp, t);
-
-    uSine = Vin * sin(2*pi*1*t);
-    ySine = lsim(H, uSine, t);
-
-    figure(respFig);
-    clf;
-
-    subplot(2,2,1);
-    plot(tStep, yStep); grid on;
-    title(['Step (Vin = ', num2str(Vin, '%.2f'), ')']);
-    xlabel('Time (s)'); ylabel('Amplitudine');
-
-    subplot(2,2,2);
-    plot(tImp, yImp); grid on;
-    title('Impulse');
-    xlabel('Time (s)'); ylabel('Amplitudine');
-
-    subplot(2,2,3);
-    plot(t, yRamp); grid on;
-    title('Ramp');
-    xlabel('Time (s)'); ylabel('Amplitudine');
-
-    subplot(2,2,4);
-    plot(t, ySine); grid on;
-    title('Sinus (1 Hz)');
-    xlabel('Time (s)'); ylabel('Amplitudine');
-end
-
-function updateAllSignals(H, Vin, combinedFig)
-    t = linspace(0, 50, 1000);
-
-    [yStep, tStep] = step(Vin * H, t);
-    [yImp, tImp]   = impulse(Vin * H, t);
-
-    uRamp = Vin * t;
-    yRamp = lsim(H, uRamp, t);
-
-    uSine = Vin * sin(2*pi*1*t);
-    ySine = lsim(H, uSine, t);
-
-    figure(combinedFig);
-    clf;
-    hold on;
-
-    plot(tStep, yStep, 'DisplayName', ['Step, Vin=' num2str(Vin, '%.2f')]);
-    plot(tImp,  yImp,  'DisplayName', ['Imp, Vin='  num2str(Vin, '%.2f')]);
-    plot(t,     yRamp, 'DisplayName', ['Ramp, Vin=' num2str(Vin, '%.2f')]);
-    plot(t,     ySine, 'DisplayName', ['Sin, Vin='  num2str(Vin, '%.2f')]);
-
-    grid on;
-    legend('Location', 'best');
-    title('Combined signals');
-    xlabel('Time (s)');
-    ylabel('Amplitudine');
-end
-
